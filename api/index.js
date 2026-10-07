@@ -1,6 +1,6 @@
 export const config = {
   runtime: 'edge',
-  regions: ['iad1'], // 強制美國華盛頓機房，徹底繞過地區限制
+  regions: ['iad1'], // 強制美國華盛頓機房，徹底繞過香港限制
 };
 
 export default async function handler(req) {
@@ -19,15 +19,17 @@ export default async function handler(req) {
 
   try {
     const url = new URL(req.url);
-    const targetUrl = 'https://generativelanguage.googleapis.com' + url.pathname + url.search;
+    const model = url.searchParams.get('model') || 'gemini-2.0-flash-exp';
+    const key = url.searchParams.get('key') || '';
 
-    // 2. 穩定讀取圖片 Base64 數據
+    // 動態組裝 Google 官方 API 請求網址
+    const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+
     let bodyData = null;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       bodyData = await req.arrayBuffer();
     }
 
-    // 3. 發送至 Google API
     const res = await fetch(targetUrl, {
       method: req.method,
       headers: {
@@ -36,7 +38,6 @@ export default async function handler(req) {
       body: bodyData,
     });
 
-    // 4. 讀取並回傳附帶 CORS 標頭的結果
     const resData = await res.arrayBuffer();
     return new Response(resData, {
       status: res.status,
